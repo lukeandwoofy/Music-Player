@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify-Style Music Player</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      padding: 20px;
+    }
+    #song-list .song-item {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background-color: #282828;
+      margin-bottom: 5px;
+      border-radius: 5px;
+    }
+    #song-list img {
+      margin-right: 15px;
+    }
+    #player {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: #181818;
+      padding: 10px;
+    }
+    .btn-spotify {
+      background-color: #1DB954;
+      border: none;
+    }
+    .btn-spotify:hover {
+      background-color: #1ed760;
+    }
+  </style>
+</head>
+<body>
+  <header class="bg-dark p-3">
+    <div class="container d-flex justify-content-between align-items-center">
+      <h1 class="h4">Music Player</h1>
+      <select id="source" class="form-control w-25">
+        <option value="spotify">Spotify</option>
+        <option value="soundcloud">SoundCloud</option>
+      </select>
+    </div>
+  </header>
+
+  <div id="spotify-section" class="container">
+    <input type="text" id="search" class="form-control mt-3" placeholder="Search for songs on Spotify">
+    <div id="song-list" class="mt-3"></div>
+  </div>
+
+  <div id="soundcloud-section" class="container" style="display: none;">
+    <input type="text" id="sc-url" class="form-control mt-3" placeholder="Enter SoundCloud track URL">
+    <div id="sc-player" class="mt-3"></div>
+  </div>
+
+  <div id="player" class="d-none">
+    <audio id="audio" controls class="w-100 mb-2"></audio>
+    <div id="controls" class="text-center">
+      <button id="prev" class="btn btn-secondary">Previous</button>
+      <button id="play-pause" class="btn btn-spotify">Play</button>
+      <button id="next" class="btn btn-secondary">Next</button>
+    </div>
+  </div>
+
+  <script>
+    // Element references
+    const sourceSelect = document.getElementById('source');
+    const spotifySection = document.getElementById('spotify-section');
+    const soundcloudSection = document.getElementById('soundcloud-section');
+    const player = document.getElementById('player');
+    const audio = document.getElementById('audio');
+    let currentTracks = [];
+    let currentIndex = -1;
+
+    // Switch between Spotify and SoundCloud
+    sourceSelect.addEventListener('change', () => {
+      const source = sourceSelect.value;
+      if (source === 'spotify') {
+        spotifySection.style.display = 'block';
+        soundcloudSection.style.display = 'none';
+        player.classList.remove('d-none');
+      } else {
+        spotifySection.style.display = 'none';
+        soundcloudSection.style.display = 'block';
+        player.classList.add('d-none');
+      }
+    });
+
+    // Spotify Authentication
+    function loginToSpotify() {
+      const clientId = 'YOUR_SPOTIFY_CLIENT_ID'; // Replace with your Spotify Client ID
+      const redirectUri = 'https://YOUR_USERNAME.github.io/YOUR_REPO/'; // Replace with your GitHub Pages URL
+      const scope = 'user-read-private';
+      const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+      window.location = authUrl;
+    }
+
+    // Extract access token from URL
+    function getAccessToken() {
+      const hash = window.location.hash;
+      if (hash) {
+        const params = new URLSearchParams(hash.substring(1));
+        return params.get('access_token');
+      }
+      return null;
+    }
+
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      spotifySection.innerHTML = '<button class="btn btn-spotify mt-3" onclick="loginToSpotify()">Login to Spotify</button>';
+    } else {
+      // Spotify Search
+      const searchInput = document.getElementById('search');
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value;
+        if (query.length > 2) {
+          fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          })
+          .then(response => response.json())
+          .then(data => {
+            currentTracks = data.tracks.items.filter(track => track.preview_url); // Only keep tracks with previews
+            displaySongs(currentTracks);
+          })
+          .catch(() => alert('Error searching Spotify. Token may have expired. Please log in again.'));
+        }
+      });
+    }
+
+    // Display Spotify songs
+    function displaySongs(tracks) {
+      const songList = document.getElementById('song-list');
+      songList.innerHTML = '';
+      tracks.forEach((track, index) => {
+        const div = document.createElement('div');
+        div.className = 'song-item';
+        div.innerHTML = `
+          <img src="${track.album.images[0].url}" width="50" height="50">
+          <span>${track.name} - ${track.artists[0].name}</span>
+          <button class="btn btn-spotify ml-auto" onclick="playSong('${track.preview_url}', ${index})">Play</button>
+        `;
+        songList.appendChild(div);
+      });
+    }
+
+    // Play Spotify song preview
+    function playSong(url, index) {
+      audio.src = url;
+      audio.play();
+      currentIndex = index;
+    }
+
+    // Playback controls
+    document.getElementById('play-pause').addEventListener('click', () => {
+      if (audio.paused) audio.play();
+      else audio.pause();
+    });
+
+    document.getElementById('next').addEventListener('click', () => {
+      if (currentIndex < currentTracks.length - 1) {
+        playSong(currentTracks[currentIndex + 1].preview_url, currentIndex + 1);
+      }
+    });
+
+    document.getElementById('prev').addEventListener('click', () => {
+      if (currentIndex > 0) {
+        playSong(currentTracks[currentIndex - 1].preview_url, currentIndex - 1);
+      }
+    });
+
+    // SoundCloud Embed
+    const scUrlInput = document.getElementById('sc-url');
+    scUrlInput.addEventListener('change', () => {
+      const url = scUrlInput.value;
+      fetch(`https://soundcloud.com/oembed?format=json&url=${url}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('sc-player').innerHTML = data.html;
+        })
+        .catch(() => alert('Invalid SoundCloud URL or track not embeddable.'));
+    });
+  </script>
+</body>
+</html>
