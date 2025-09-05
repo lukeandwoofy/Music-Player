@@ -10,22 +10,66 @@
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
+            background: linear-gradient(45deg, #ff00ff, #00f0ff, #ff00ff, #00f0ff);
+            background-size: 400%;
+            animation: neonGlow 5s ease-in-out infinite;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
         }
+
+        @keyframes neonGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         input {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00f0ff;
+            color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #00f0ff;
         }
+
+        input:focus {
+            outline: none;
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px #ff00ff;
+        }
+
         button {
             padding: 10px 20px;
             background-color: #ff5500;
             color: white;
-            border: none;
+            border: 2px solid #ff00ff;
             cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #ff00ff;
+            transition: all 0.3s ease;
         }
+
+        button:hover {
+            background-color: #ff00ff;
+            box-shadow: 0 0 15px #ff00ff;
+        }
+
         audio {
             width: 100%;
             margin-top: 20px;
+            filter: drop-shadow(0 0 10px #00f0ff);
+        }
+
+        h1 {
+            text-align: center;
+            text-shadow: 0 0 15px #ff00ff, 0 0 25px #00f0ff;
+        }
+
+        p {
+            text-align: center;
+            text-shadow: 0 0 10px #00f0ff;
         }
     </style>
 </head>
